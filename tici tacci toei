@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Ticcy Taccy Toei</title>
+  <style>
+    body {
+      background-color: #111;
+      color: #f2f2f2;
+      font-family: 'Courier New', monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    h1 {
+      text-align: center;
+      color: #ff5555;
+      animation: flicker 2s infinite alternate;
+    }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-gap: 5px;
+      margin-top: 20px;
+    }
+
+    .cell {
+      width: 100px;
+      height: 100px;
+      background-color: #222;
+      border: 2px solid #444;
+      font-size: 2em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .cell:hover {
+      background-color: #333;
+    }
+
+    #message {
+      margin-top: 20px;
+      color: #ff5555;
+      font-size: 1.2em;
+      text-align: center;
+    }
+
+    @keyframes flicker {
+      0% { opacity: 1; }
+      50% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+
+    .glitch {
+      animation: glitch 1s infinite;
+    }
+
+    @keyframes glitch {
+      0% { transform: translate(0); }
+      20% { transform: translate(-1px, 1px); }
+      40% { transform: translate(-3px, 0px); }
+      60% { transform: translate(3px, 2px); }
+      80% { transform: translate(1px, -2px); }
+      100% { transform: translate(0); }
+    }
+  </style>
+</head>
+<body>
+
+<h1>Tic Tac Toe</h1>
+<div id="board"></div>
+<div id="message"></div>
+
+<script>
+  const boardEl = document.getElementById('board');
+  const messageEl = document.getElementById('message');
+
+  let board = Array(9).fill(null);
+  let player = 'X';
+  let ai = 'O';
+  let gameOver = false;
+  let lossCount = 0;
+  let aiHasGlitched = false;
+
+  function drawBoard() {
+    boardEl.innerHTML = '';
+    board.forEach((val, idx) => {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.index = idx;
+      cell.textContent = val || '';
+      cell.onclick = handleClick;
+      boardEl.appendChild(cell);
+    });
+  }
+
+  function handleClick(e) {
+    if (gameOver) return;
+    const idx = e.target.dataset.index;
+    if (!board[idx]) {
+      board[idx] = player;
+      drawBoard();
+      if (checkWin(player)) {
+        endGame('You win...');
+        return;
+      }
+      if (board.every(cell => cell)) {
+        endGame('Draw.');
+        return;
+      }
+      aiMove();
+    }
+  }
+
+  function aiMove() {
+    let move = findBestMove();
+    board[move] = ai;
+    drawBoard();
+    if (checkWin(ai)) {
+      lossCount++;
+      if (lossCount >= 3) {
+        document.querySelector('h1').textContent = "IT KNOWS";
+        document.body.classList.add('glitch');
+        endGame('You were never meant to win.');
+      } else {
+        endGame('You lose.');
+      }
+    } else if (board.every(cell => cell)) {
+      endGame('Draw.');
+    }
+  }
+
+  function findBestMove() {
+    // AI intentionally glitches ONCE
+    if (!aiHasGlitched && Math.random() < 0.4) {
+      aiHasGlitched = true;
+      let empty = board.map((v, i) => v ? null : i).filter(v => v !== null);
+      return empty[Math.floor(Math.random() * empty.length)];
+    }
+
+    // Try to win or block
+    const winCombos = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+    for (let combo of winCombos) {
+      const [a,b,c] = combo;
+      if (board[a] === ai && board[b] === ai && !board[c]) return c;
+      if (board[a] === ai && board[c] === ai && !board[b]) return b;
+      if (board[b] === ai && board[c] === ai && !board[a]) return a;
+    }
+    for (let combo of winCombos) {
+      const [a,b,c] = combo;
+      if (board[a] === player && board[b] === player && !board[c]) return c;
+      if (board[a] === player && board[c] === player && !board[b]) return b;
+      if (board[b] === player && board[c] === player && !board[a]) return a;
+    }
+
+    // Otherwise, pick center or random
+    if (!board[4]) return 4;
+    let empty = board.map((v, i) => v ? null : i).filter(v => v !== null);
+    return empty[Math.floor(Math.random() * empty.length)];
+  }
+
+  function checkWin(mark) {
+    const winCombos = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+    return winCombos.some(([a,b,c]) => board[a] === mark && board[b] === mark && board[c] === mark);
+  }
+
+  function endGame(msg) {
+    messageEl.textContent = msg;
+    gameOver = true;
+    setTimeout(() => {
+      if (lossCount >= 3) {
+        messageEl.textContent = "brilliant try, friend.";
+      }
+      setTimeout(resetGame, 3000);
+    }, 1500);
+  }
+
+  function resetGame() {
+    board = Array(9).fill(null);
+    gameOver = false;
+    aiHasGlitched = false;
+    messageEl.textContent = '';
+    drawBoard();
+  }
+
+  drawBoard();
+</script>
+
+</body>
+</html>
+
