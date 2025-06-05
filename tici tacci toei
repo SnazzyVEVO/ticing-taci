@@ -1,207 +1,223 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Ticcy Taccy Toei</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ticcy Tacci Toei</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
     body {
       background-color: #000000;
-      color: #ffffff;
-      font-family: 'Arcade Classic', monospace;
+      color: #FF4444;
+      font-family: 'Press Start 2P', monospace;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
       margin: 0;
+      text-align: center;
+      user-select: none;
     }
 
     h1 {
-      text-align: center;
-      color: #ff5555;
-      animation: flicker 2s infinite alternate;
+      font-size: 20px;
+      margin-bottom: 20px;
+      text-shadow: 0 0 8px red;
     }
 
-    #board {
+    .board {
       display: grid;
       grid-template-columns: repeat(3, 100px);
-      grid-gap: 5px;
-      margin-top: 20px;
+      grid-template-rows: repeat(3, 100px);
+      gap: 5px;
+      margin-bottom: 20px;
     }
 
     .cell {
-      width: 100px;
-      height: 100px;
-      background-color: #222;
-      border: 2px solid #444;
-      font-size: 2em;
+      background-color: #000;
+      border: 2px solid #FF4444;
+      color: #FF4444;
+      font-size: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: background 0.3s;
+      transition: background-color 0.2s;
     }
 
     .cell:hover {
-      background-color: #333;
+      background-color: #220000;
     }
 
-    #message {
+    .message {
+      font-size: 12px;
       margin-top: 20px;
-      color: #ff5555;
-      font-size: 1.2em;
-      text-align: center;
+      height: 50px;
     }
 
-    @keyframes flicker {
-      0% { opacity: 1; }
-      50% { opacity: 0.6; }
-      100% { opacity: 1; }
+    .hidden {
+      display: none;
     }
 
-    .glitch {
-      animation: glitch 1s infinite;
-    }
-
-    @keyframes glitch {
-      0% { transform: translate(0); }
-      20% { transform: translate(-1px, 1px); }
-      40% { transform: translate(-3px, 0px); }
-      60% { transform: translate(3px, 2px); }
-      80% { transform: translate(1px, -2px); }
-      100% { transform: translate(0); }
+    .disabled {
+      pointer-events: none;
+      opacity: 0.1;
     }
   </style>
 </head>
 <body>
+  <h1>Ticcy Tacci Toei</h1>
+  <div class="board" id="board"></div>
+  <div class="message" id="message"></div>
 
-<h1>Tic Tac Toe</h1>
-<div id="board"></div>
-<div id="message"></div>
+  <!-- Placeholder for creepy audio -->
+  <audio id="creepySound" src="your-sound.mp3"></audio>
 
-<script>
-  const boardEl = document.getElementById('board');
-  const messageEl = document.getElementById('message');
+  <script>
+    const boardElement = document.getElementById('board');
+    const messageElement = document.getElementById('message');
+    const audioElement = document.getElementById('creepySound');
 
-  let board = Array(9).fill(null);
-  let player = 'X';
-  let ai = 'O';
-  let gameOver = false;
-  let lossCount = 0;
-  let aiHasGlitched = false;
+    let board = ["", "", "", "", "", "", "", "", ""];
+    let currentPlayer = "X";
+    let gameActive = true;
+    let lossCount = 0;
 
-  function drawBoard() {
-    boardEl.innerHTML = '';
-    board.forEach((val, idx) => {
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-      cell.dataset.index = idx;
-      cell.textContent = val || '';
-      cell.onclick = handleClick;
-      boardEl.appendChild(cell);
-    });
-  }
-
-  function handleClick(e) {
-    if (gameOver) return;
-    const idx = e.target.dataset.index;
-    if (!board[idx]) {
-      board[idx] = player;
-      drawBoard();
-      if (checkWin(player)) {
-        endGame('You win...');
-        return;
+    function createBoard() {
+      boardElement.innerHTML = '';
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        cell.dataset.index = i;
+        cell.addEventListener('click', handleClick);
+        cell.textContent = board[i];
+        boardElement.appendChild(cell);
       }
-      if (board.every(cell => cell)) {
-        endGame('Draw.');
-        return;
-      }
-      aiMove();
     }
-  }
 
-  function aiMove() {
-    let move = findBestMove();
-    board[move] = ai;
-    drawBoard();
-    if (checkWin(ai)) {
-      lossCount++;
-      if (lossCount >= 3) {
-        document.querySelector('h1').textContent = "IT KNOWS";
-        document.body.classList.add('glitch');
-        endGame('You were never meant to win.');
+    function handleClick(e) {
+      const index = e.target.dataset.index;
+
+      if (!gameActive || board[index] !== "") return;
+
+      board[index] = "X";
+      updateBoard();
+
+      if (checkWin("X")) {
+        messageElement.textContent = "You Win... this time.";
+        gameActive = false;
+        return;
+      }
+
+      if (board.every(cell => cell !== "")) {
+        messageElement.textContent = "Draw... You got lucky.";
+        gameActive = false;
+        return;
+      }
+
+      setTimeout(() => {
+        computerMove();
+        updateBoard();
+
+        if (checkWin("O")) {
+          lossCount++;
+          messageElement.textContent = "Your Failure was inevitable and planned. Your loss only brings you closer to me.";
+          if (lossCount >= 5) {
+            disableGame();
+          }
+          // Play sound if available
+          if(audioElement.src){
+            audioElement.play();
+          }
+          gameActive = false;
+        } else if (board.every(cell => cell !== "")) {
+          messageElement.textContent = "Draw... You delay the inevitable.";
+          gameActive = false;
+        }
+      }, 500);
+    }
+
+    // AI: Almost unbeatable with 15% randomness
+    function computerMove() {
+      if (Math.random() < 0.15) {
+        let emptyIndices = board
+          .map((val, idx) => (val === "" ? idx : null))
+          .filter((val) => val !== null);
+        const choice = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+        board[choice] = "O";
       } else {
-        endGame('You lose.');
+        let bestScore = -Infinity;
+        let move = -1;
+        for (let i = 0; i < 9; i++) {
+          if (board[i] === "") {
+            board[i] = "O";
+            let score = minimax(board, 0, false);
+            board[i] = "";
+            if (score > bestScore) {
+              bestScore = score;
+              move = i;
+            }
+          }
+        }
+        board[move] = "O";
       }
-    } else if (board.every(cell => cell)) {
-      endGame('Draw.');
-    }
-  }
-
-  function findBestMove() {
-    // AI intentionally glitches ONCE
-    if (!aiHasGlitched && Math.random() < 0.4) {
-      aiHasGlitched = true;
-      let empty = board.map((v, i) => v ? null : i).filter(v => v !== null);
-      return empty[Math.floor(Math.random() * empty.length)];
     }
 
-    // Try to win or block
-    const winCombos = [
-      [0,1,2],[3,4,5],[6,7,8],
-      [0,3,6],[1,4,7],[2,5,8],
-      [0,4,8],[2,4,6]
-    ];
-    for (let combo of winCombos) {
-      const [a,b,c] = combo;
-      if (board[a] === ai && board[b] === ai && !board[c]) return c;
-      if (board[a] === ai && board[c] === ai && !board[b]) return b;
-      if (board[b] === ai && board[c] === ai && !board[a]) return a;
-    }
-    for (let combo of winCombos) {
-      const [a,b,c] = combo;
-      if (board[a] === player && board[b] === player && !board[c]) return c;
-      if (board[a] === player && board[c] === player && !board[b]) return b;
-      if (board[b] === player && board[c] === player && !board[a]) return a;
-    }
+    function minimax(newBoard, depth, isMaximizing) {
+      if (checkWin("O")) return 10 - depth;
+      if (checkWin("X")) return depth - 10;
+      if (newBoard.every(cell => cell !== "")) return 0;
 
-    // Otherwise, pick center or random
-    if (!board[4]) return 4;
-    let empty = board.map((v, i) => v ? null : i).filter(v => v !== null);
-    return empty[Math.floor(Math.random() * empty.length)];
-  }
-
-  function checkWin(mark) {
-    const winCombos = [
-      [0,1,2],[3,4,5],[6,7,8],
-      [0,3,6],[1,4,7],[2,5,8],
-      [0,4,8],[2,4,6]
-    ];
-    return winCombos.some(([a,b,c]) => board[a] === mark && board[b] === mark && board[c] === mark);
-  }
-
-  function endGame(msg) {
-    messageEl.textContent = msg;
-    gameOver = true;
-    setTimeout(() => {
-      if (lossCount >= 3) {
-        messageEl.textContent = "brilliant try, friend.";
+      if (isMaximizing) {
+        let bestScore = -Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (newBoard[i] === "") {
+            newBoard[i] = "O";
+            let score = minimax(newBoard, depth + 1, false);
+            newBoard[i] = "";
+            bestScore = Math.max(score, bestScore);
+          }
+        }
+        return bestScore;
+      } else {
+        let bestScore = Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (newBoard[i] === "") {
+            newBoard[i] = "X";
+            let score = minimax(newBoard, depth + 1, true);
+            newBoard[i] = "";
+            bestScore = Math.min(score, bestScore);
+          }
+        }
+        return bestScore;
       }
-      setTimeout(resetGame, 3000);
-    }, 1500);
-  }
+    }
 
-  function resetGame() {
-    board = Array(9).fill(null);
-    gameOver = false;
-    aiHasGlitched = false;
-    messageEl.textContent = '';
-    drawBoard();
-  }
+    function checkWin(player) {
+      const winPatterns = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+      ];
+      return winPatterns.some(pattern =>
+        pattern.every(index => board[index] === player)
+      );
+    }
 
-  drawBoard();
-</script>
+    function updateBoard() {
+      const cells = boardElement.querySelectorAll('.cell');
+      cells.forEach((cell, index) => {
+        cell.textContent = board[index];
+      });
+    }
 
+    function disableGame() {
+      boardElement.classList.add('disabled');
+      messageElement.textContent = "The game is over. You were never meant to win.";
+    }
+
+    createBoard();
+  </script>
 </body>
 </html>
-
